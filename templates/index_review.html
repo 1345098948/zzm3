@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>City Review Scores</title>
+    <!-- 添加Bootstrap CSS链接 -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #scoreChartContainer {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        #scoreChart {
+            width: 100%;
+        }
+
+        #responseTime {
+            font-weight: bold;
+            color: #333;
+        }
+
+        #pagination {
+            margin-top: 10px;
+        }
+
+        .pagination-btn {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination-btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="mt-5">City Review Scores</h1>
+    <form method="POST" class="mt-3">
+        <div class="form-group">
+            <label for="city">City Name:</label>
+            <input type="text" id="city" name="city" class="form-control" required>
+        </div>
+        <div class="form-group">
+            <label for="country">Country Name:</label>
+            <input type="text" id="country" name="country" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+    <br>
+    <div id="scoreChartContainer" class="mt-4">
+        <canvas id="scoreChart" width="400" height="200"></canvas>
+        <p class="mt-3">Response Time: <span id="responseTime">0</span> ms</p>
+    </div>
+    <div id="pagination">
+        <button class="pagination-btn" onclick="prevPage()">Previous Page</button>
+        <span id="currentPage">Page 1</span>
+        <button class="pagination-btn" onclick="nextPage()">Next Page</button>
+    </div>
+    <script>
+        // JavaScript代码将在此处添加
+        var data = {{ data | safe }};
+        var scores = data.scores;
+        var responseTime = data.response_time;
+        var itemsPerPage = 100;
+        var currentPage = 1;
+
+        function updateChart() {
+            var startIdx = (currentPage - 1) * itemsPerPage;
+            var endIdx = startIdx + itemsPerPage;
+
+            // 绘制折线图
+            var ctx = document.getElementById('scoreChart').getContext('2d');
+            var chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: scores.slice(startIdx, endIdx).map(function (_, i) { return i + startIdx + 1; }),
+                    datasets: [{
+                        label: 'Average Review Score',
+                        data: scores.slice(startIdx, endIdx).map(function (s) { return s.average_score; }),
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Average Review Score'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'City'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePagination() {
+            document.getElementById('currentPage').textContent = 'Page ' + currentPage;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updateChart();
+                updatePagination();
+            }
+        }
+
+        function nextPage() {
+            var totalPages = Math.ceil(scores.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updateChart();
+                updatePagination();
+            }
+        }
+
+        // 初始化页面
+        document.getElementById('responseTime').textContent = responseTime;
+        updateChart();
+        updatePagination();
+    </script>
+</body>
+</html>

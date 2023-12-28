@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cluster Review Statistics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Include Chart.js library -->
+</head>
+<body>
+
+    <div style="width: 60%; margin: auto;">
+        <div>Zeming Zhu</div>
+        <div>1002176601</div>
+        <br>
+        <div>Chenxu Zhou</div>
+        <div>1002176348</div>
+        <br>
+        <button onclick="openNewPage1()">Problem10</button>
+        <button onclick="openNewPage2()">Problem11</button>
+        <br>
+        <div>Problem 12 and 13:</div>
+        <br>
+
+        <!-- Input fields for parameters -->
+        <div>
+            <input type="number" id="classes" placeholder="Enter Classes">
+            <input type="number" id="k" placeholder="Enter K">
+            <input type="number" id="word" placeholder="Enter Word">
+            <button onclick="fetchDataAndCreateChart2()">Generate Chart with part of reviews</button>
+            <div>Generate Chart with all reviews need more than 15 minutes</div>
+{#            <button onclick="fetchDataAndCreateChart()">Generate Chart with all reviews(Need long time)</button>#}
+        </div>
+
+        <!-- Description Div -->
+        <div id="classDescription"></div>
+
+        <!-- Radar Chart Div -->
+        <div style="width: 60%; margin: auto;">
+            <canvas id="radarChart"></canvas>
+        </div>
+
+        <canvas id="pieChart"></canvas> <!-- Canvas where the pie chart will be drawn -->
+        <div id="responseTime"></div>
+    </div>
+    <script>
+        function openNewPage1() {
+            window.open('zxc');
+        }
+        function openNewPage2() {
+            window.open('zzm');
+        }
+        let myChart = null;
+        // Function to fetch data and create the pie chart
+        function fetchDataAndCreateChart2() {
+            // Get values from input fields
+            const classes = document.getElementById('classes').value;
+            const k = document.getElementById('k').value;
+            const word = document.getElementById('word').value;
+            const startTime = performance.now(); // Start time before the request
+
+            // Construct the URL with query parameters
+            const url = `/stat/knn_reviews2?classes=${classes}&k=${k}&word=${word}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const endTime = performance.now(); // End time after receiving the response
+                    const responseTime = endTime - startTime; // Calculate response time
+                    createChart(data)
+                    document.getElementById('responseTime').innerText = `Response Time: ${responseTime.toFixed(2)} milliseconds`;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        function fetchDataAndCreateChart() {
+            // Get values from input fields
+            const classes = document.getElementById('classes').value;
+            const k = document.getElementById('k').value;
+            const word = document.getElementById('word').value;
+
+            // Construct the URL with query parameters
+            const url = `/stat/knn_reviews?classes=${classes}&k=${k}&word=${word}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => createChart(data))
+                .catch(error => console.error('Error:', error));
+        }
+
+        function createChart(data) {
+            if (myChart) {
+                myChart.destroy();
+            }
+            if (radar) {
+                radar.destroy();
+            }
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            const labels = data.clusters.map(cluster => cluster.center_city);
+            const populations = data.clusters.map(cluster =>
+                cluster.cities_in_class.reduce((sum, city) => sum + city.population, 0)
+            );
+            myChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Population',
+                        data: populations,
+                        backgroundColor: ['red', 'blue', 'green', 'yellow', 'purple'] // Adjust colors as needed
+                    }]
+                },
+                options: {
+                    // ... existing options ...
+                    onClick: function(evt) {
+                        var activePoints = myChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                        if (activePoints.length) {
+                            var clickedIndex = activePoints[0].index;
+                            var selectedClass = data.clusters[clickedIndex];
+                            showDescription(selectedClass);
+                            createRadarChart(selectedClass);
+                        }
+                    }
+                }
+            });
+        }
+        function showDescription(selectedClass) {
+            // Display the description of the selected class
+            var description = `
+                <p>Number of Cities: ${selectedClass.cities_in_class.length}</p>
+                <p>Weighted Average Review Score: ${selectedClass.weighted_avg_score}</p>
+                <p>Center City: ${selectedClass.center_city}</p>
+            `;
+            document.getElementById('classDescription').innerHTML = description;
+        }
+        let radar = null
+        function createRadarChart(selectedClass) {
+            // Assuming 'spiritual word' and its data is available in selectedClass
+            // Adjust the radar chart creation logic according to your actual data structure
+
+            // Destroy existing radar chart if any
+            if (radar) {
+                radar.destroy();
+            }
+
+            // Create radar chart
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            radar = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: selectedClass.top_words.map(word => word.term),
+                    datasets: [{
+                        label: selectedClass.center_city,
+                        data: selectedClass.top_words.map(word => word.popularity),
+                        // ... additional radar chart configurations ...
+                    }]
+                }
+                // ... radar chart options ...
+            });
+        }
+
+    </script>
+</body>
+</html>
